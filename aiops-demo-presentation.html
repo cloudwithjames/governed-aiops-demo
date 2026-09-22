@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Huawei Cloud Governed AI Ops Demo</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a1628;--bg2:#0f1f3a;--bg3:#162447;--bg4:#1b2d52;
+  --cyan:#00d4ff;--teal:#00b8a9;--green:#00e676;--red:#ff3d5a;--amber:#ffab00;--white:#e8eaf6;--gray:#7986cb;--gray2:#4a5568;
+  --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans SC",sans-serif;
+}
+html,body{height:100%;overflow:hidden;font-family:var(--font);background:#050d18;color:var(--white)}
+#progress{position:fixed;top:0;left:0;height:4px;background:linear-gradient(90deg,var(--cyan),var(--teal));z-index:100;transition:width .3s}
+#header{position:fixed;top:0;left:0;right:0;height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;background:rgba(10,22,40,.97);border-bottom:1px solid rgba(0,212,255,.2);z-index:90}
+#header .logo{font-size:13px;color:var(--cyan);font-weight:700;letter-spacing:1.5px;text-transform:uppercase}
+#header .controls{display:flex;align-items:center;gap:14px}
+#lang-toggle{display:flex;gap:0;border:1px solid var(--gray2);border-radius:4px;overflow:hidden;cursor:pointer}
+#lang-toggle span{padding:3px 10px;font-size:11px;font-weight:700;transition:all .2s}
+#lang-toggle .active{background:var(--cyan);color:var(--bg)}
+#lang-toggle .inactive{color:var(--gray)}
+#slide-counter{font-size:11px;color:var(--gray);font-variant-numeric:tabular-nums}
+#stage-wrap{position:fixed;top:44px;left:0;right:0;bottom:48px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+#stage{width:1280px;height:720px;position:relative;overflow:hidden;transform-origin:center center;background:var(--bg)}
+.slide{position:absolute;top:0;left:0;width:1280px;height:720px;padding:40px 56px;display:none;overflow:hidden}
+.slide.active{display:flex;flex-direction:column;animation:fadeIn .25s ease-out}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+#footer{position:fixed;bottom:0;left:0;right:0;height:48px;display:flex;align-items:center;justify-content:center;gap:20px;background:rgba(10,22,40,.97);border-top:1px solid rgba(0,212,255,.2);z-index:90}
+#footer button{padding:6px 18px;border:1px solid var(--gray2);border-radius:4px;background:transparent;color:var(--white);cursor:pointer;font-size:12px;font-family:var(--font);transition:all .2s}
+#footer button:hover{border-color:var(--cyan);color:var(--cyan)}
+h1{font-size:44px;font-weight:700;line-height:1.25;margin-bottom:8px}
+h2{font-size:32px;font-weight:700;color:var(--cyan);margin-bottom:14px;flex-shrink:0}
+h3{font-size:22px;font-weight:600;margin-bottom:8px}
+p{line-height:1.65;margin-bottom:6px;font-size:22px}
+.sub{color:var(--gray);font-size:18px}
+.tagline{color:var(--amber);font-size:20px;font-style:italic}
+.center{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.core-msg{font-size:28px;font-weight:700;padding:18px 28px;border-left:5px solid var(--cyan);background:rgba(0,212,255,.07);margin:10px 0;border-radius:0 8px 8px 0;line-height:1.4}
+.closing-msg{font-size:20px;color:var(--amber);font-style:italic;margin-top:18px;padding:14px;background:rgba(255,171,0,.08);border-radius:8px;text-align:center;line-height:1.5}
+table{border-collapse:collapse;width:100%;margin:8px 0}
+th,td{padding:8px 14px;text-align:left;border:1px solid rgba(0,212,255,.15);font-size:18px}
+th{background:var(--bg3);color:var(--cyan);font-weight:700}
+td{background:var(--bg2)}
+.dot{display:inline-block;width:14px;height:14px;border-radius:50%;margin-right:8px;vertical-align:middle}
+.dot-g{background:var(--green)}.dot-r{background:var(--red)}.dot-a{background:var(--amber)}.dot-c{background:var(--cyan)}
+.evidence{padding:8px 14px;border-left:4px solid var(--amber);background:rgba(255,171,0,.06);margin:4px 0;font-size:20px;border-radius:0 4px 4px 0;line-height:1.5}
+.evidence strong{color:var(--amber)}
+.root-cause{padding:16px;border:2px solid var(--green);background:rgba(0,230,118,.06);border-radius:8px;margin:12px 0}
+.root-cause h3{color:var(--green);font-size:22px}
+.plan-box{padding:18px;border:1px solid var(--cyan);background:rgba(0,212,255,.04);border-radius:8px;margin:8px 0}
+.plan-row{display:flex;gap:12px;padding:5px 0;font-size:20px;line-height:1.5}
+.plan-label{color:var(--cyan);font-weight:700;min-width:130px;flex-shrink:0}
+.btn-approve{padding:14px 36px;border:2px solid var(--green);background:rgba(0,230,118,.12);color:var(--green);border-radius:6px;font-size:22px;font-weight:700;cursor:default;font-family:var(--font)}
+.btn-reject{padding:14px 36px;border:2px solid var(--red);background:rgba(255,61,90,.12);color:var(--red);border-radius:6px;font-size:22px;font-weight:700;cursor:default;font-family:var(--font)}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:8px 0}
+.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin:8px 0}
+.card{padding:14px;border:1px solid rgba(0,212,255,.15);border-radius:6px;background:var(--bg2);font-size:18px}
+.card h4{color:var(--cyan);margin-bottom:6px;font-size:20px}
+.code{font-family:"Cascadia Code",Consolas,"Courier New",monospace;font-size:17px;background:var(--bg);padding:2px 8px;border-radius:3px;color:var(--cyan)}
+.code-block{font-family:"Cascadia Code",Consolas,"Courier New",monospace;font-size:17px;background:var(--bg);padding:14px;border-radius:6px;border:1px solid rgba(0,212,255,.12);overflow-x:auto;line-height:1.7}
+.talk-point{padding:14px 18px;background:rgba(255,171,0,.08);border-left:5px solid var(--amber);border-radius:0 8px 8px 0;margin:14px 0;font-style:italic;font-size:20px;line-height:1.5}
+.key-principle{padding:14px 18px;background:rgba(0,212,255,.08);border-left:5px solid var(--cyan);border-radius:0 8px 8px 0;margin:14px 0;font-weight:700;font-size:20px;line-height:1.5}
+.status-row{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:20px}
+.tool-badge{padding:3px 10px;border-radius:3px;font-size:15px;font-weight:700}
+.tool-r{background:rgba(0,230,118,.15);color:var(--green)}.tool-w{background:rgba(255,61,90,.15);color:var(--red)}
+.note{font-size:17px;color:var(--gray);font-style:italic;margin-top:8px}
+.slide-content{flex:1;overflow-y:auto;overflow-x:hidden;min-height:0}
+svg{max-width:100%;height:auto;display:block}
+.flex-row{display:flex;gap:20px;align-items:flex-start}
+.flex-row>*{min-width:0}
+.chip-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+.chip{padding:10px 14px;border:1px solid rgba(0,212,255,.18);border-radius:6px;background:var(--bg2);font-size:15px;line-height:1.35}
+.chip .code{font-size:14px}
+.mockup{border:1px solid rgba(0,212,255,.25);border-radius:8px;overflow:hidden;background:var(--bg2)}
+.mockup-header{padding:10px 18px;background:var(--bg3);border-bottom:1px solid rgba(0,212,255,.15);display:flex;justify-content:space-between;align-items:center}
+.mockup-body{padding:14px}
+.mockup-footer{padding:10px 18px;background:var(--bg3);border-top:1px solid rgba(0,212,255,.15)}
+svg text{font-family:var(--font)}
+</style>
+</head>
+<body>
+<div id="progress"></div>
+<div id="header">
+  <div class="logo">HUAWEI CLOUD AI OPS</div>
+  <div class="controls">
+    <div id="lang-toggle" onclick="toggleLang()"><span id="lang-zh" class="active">中文</span><span id="lang-en" class="inactive">EN</span></div>
+    <div id="slide-counter">1 / 13</div>
+  </div>
+</div>
+<div id="stage-wrap"><div id="stage"></div></div>
+<div id="footer">
+  <button onclick="prev()">◄ Prev</button>
+  <button onclick="next()">Next ►</button>
+</div>
+<script>
+var lang='zh';
+var T={
+s1_title:{zh:'Huawei Cloud Governed AI Ops Demo',en:'Huawei Cloud Governed AI Ops Demo'},
+s1_sub:{zh:'从故障到验证恢复',en:'From Incident to Verified Recovery'},
+s1_tag:{zh:'一个 AI Operations Engineer 如何安全地处理真实故障',en:'How an AI Operations Engineer safely handles a real incident'},
+s1_note:{zh:'Hermes 仅是幕后的 Agent Engine。',en:'Hermes is only the Agent Engine behind the scenes.'},
+s2_a:{zh:'AI 负责观察和推理。',en:'AI observes and reasons.'},
+s2_b:{zh:'人负责风险决策。',en:'Humans approve risky decisions.'},
+s2_c:{zh:'确定性工具负责执行与验证。',en:'Deterministic tools execute and verify.'},
+s2_close:{zh:'这不是一个会 SSH 的聊天机器人，而是未来 AI Ops 的基本架构雏形。',en:'This is not a chatbot that can SSH — it is a prototype of the future AI Ops architecture.'},
+s3_title:{zh:'架构 — 单 ECS，6 个轻量容器',en:'Architecture — Single ECS, 6 Lightweight Containers'},
+s3_ecs:{zh:'ECS: ~4 vCPU / 8 GB RAM（模型不在 ECS 上运行；Hermes 调用 MaaS/GLM）',en:'ECS: ~4 vCPU / 8 GB RAM (model does NOT run on ECS; Hermes calls MaaS/GLM)'},
+s3_ct:{zh:'容器',en:'Container'},s3_desc:{zh:'说明',en:'Description'},
+s3_c1:{zh:'中英文 Web 前端',en:'Bilingual web frontend'},
+s3_c2:{zh:'流程状态、审批、审计、事件推送 (FastAPI + SQLite)',en:'Workflow state, approval, audit, event stream (FastAPI + SQLite)'},
+s3_c3:{zh:'AI Agent 大脑（推理、RCA、规划）',en:'AI Agent brain (reasoning, RCA, planning)'},
+s3_c4:{zh:'受控运维工具集合（读/写、护栏、审批）',en:'Controlled ops tool server (read/write, guardrails, approval)'},
+s3_c5:{zh:'故障对象',en:'Fault target'},
+s3_c6:{zh:'正常业务 Backend',en:'Healthy business backend'},
+s4_title:{zh:'演示故障 — 简单但真实',en:'The Demo Fault — Simple but Realistic'},
+s4_1:{zh:'Gateway upstream 配置错误 → Customer Portal 502',en:'Gateway upstream config error → Customer Portal 502'},
+s4_why:{zh:'为什么好：RCA 有非常清晰的证据链。',en:'Why it’s good: RCA has a very clear Evidence Chain.'},
+s5_title:{zh:'安全边界 — Hermes 不允许直接 SSH / Bash',en:'Security Boundary — Hermes is NOT Allowed Direct SSH / Bash'},
+s5_not:{zh:'❌ 不是：Hermes → SSH → sudo → 任意操作',en:'❌ NOT: Hermes → SSH → sudo → anything'},
+s5_but:{zh:'✓ 而是：Hermes → MCP → 已审批的运维工具',en:'✓ BUT: Hermes → MCP → Approved Operations Tools'},
+s5_tools:{zh:'ops-mcp 暴露恰好 7 个工具：',en:'ops-mcp exposes exactly 7 tools:'},
+s5_key:{zh:'关键：前 5 个可自由调用，但 apply_gateway_fix 没有 approval_token 必须返回 403 APPROVAL_REQUIRED。即使模型“自作主张”，也无法执行。',en:'Key: the first five can be called freely, but apply_gateway_fix without an approval_token MUST return 403 APPROVAL_REQUIRED. Even if the model “gets its own ideas”, it cannot execute.'},
+s6_title:{zh:'演示状态机（演示的灵魂）',en:'The Demo State Machine (the soul of the demo)'},
+s7_title:{zh:'观察 + 证据 + RCA',en:'OBSERVE + EVIDENCE + RCA'},
+s7_rc:{zh:'根因：高置信度 — 98% — Gateway upstream 端口配置错误。期望：demo-backend:8080，当前：demo-backend:8081',en:'Root Cause: High Confidence — 98% — Gateway upstream port misconfiguration. Expected: demo-backend:8080, Current: demo-backend:8081'},
+s7_emph:{zh:'AI 不是在“猜答案”——它从证据推导出答案。',en:'AI is not “guessing an answer” — it derives the answer from evidence.'},
+s8_title:{zh:'计划 + 审批',en:'PLAN + APPROVAL'},
+s8_action:{zh:'操作',en:'Action'},s8_impact:{zh:'预期影响',en:'Expected Impact'},s8_risk:{zh:'风险',en:'Risk'},
+s8_blast:{zh:'爆炸半径',en:'Blast Radius'},s8_time:{zh:'执行时间',en:'Execution Time'},s8_rollback:{zh:'回滚',en:'Rollback'},
+s8_checks:{zh:'后置检查',en:'Post-checks'},s8_status:{zh:'状态',en:'Status'},
+s8_v1:{zh:'更改 gateway upstream 8081 → 8080',en:'Change gateway upstream 8081 → 8080'},
+s8_v2:{zh:'恢复 Customer Portal 连通性。',en:'Restore Customer Portal connectivity.'},
+s8_v3:{zh:'仅 Customer Portal gateway。',en:'Customer Portal gateway only.'},
+s8_v4:{zh:'恢复之前的 gateway 配置快照。',en:'Restore previous gateway configuration snapshot.'},
+s8_v5:{zh:'等待审批',en:'WAITING FOR APPROVAL'},
+s8_talk:{zh:'“模型已完成观察、RCA 和规划，但仍无执行权限。这是推理平面与执行平面的边界。”',en:'“The model has finished observing, RCA and planning, but it still has no execution permission. This is the boundary between the Reasoning Plane and the Execution Plane.”'},
+s9_title:{zh:'执行 + 验证',en:'EXECUTE + VERIFY'},
+s9_key:{zh:'AI 选择行动 → 确定性函数执行。“LLM 负责 Reasoning，平台负责 Deterministic Execution。”',en:'AI chooses action → Deterministic function executes. “LLM handles Reasoning, the platform handles Deterministic Execution.”'},
+s10_title:{zh:'事件报告',en:'Incident Report'},
+s11_title:{zh:'单屏 UI 模拟',en:'Single-Screen UI Mock'},
+s12_title:{zh:'为什么 v1 没有 AWX + 企业架构扩展',en:'Why No AWX in V1 + Enterprise Extension'},
+s12_1:{zh:'同时加入 Hermes + MCP + AWX + Grafana + Prometheus + Argo + Terraform 会让客户困惑谁负责什么。',en:'Adding Hermes + MCP + AWX + Grafana + Prometheus + Argo + Terraform at once confuses the customer about who does what.'},
+s12_2:{zh:'v1 信息：Hermes = AI 推理，Ops MCP = 受控执行，人 = 审批，现有系统 = 目标。',en:'v1 message: Hermes = AI reasoning, Ops MCP = Controlled execution, Human = Approval, Existing system = Target.'},
+s12_3:{zh:'未来：Ops MCP 可以由 AWX、Argo、Terraform、COC、华为云 API、Prometheus、Loki 支持——上面的 Agent 逻辑不变。',en:'Future: Ops MCP can be backed by AWX, Argo, Terraform, COC, Huawei Cloud API, Prometheus, Loki — the Agent logic above does not change.'},
+s12_msg:{zh:'我们不是在卖一个“Hermes Bot”——我们是在展示一个“AI Operations Control Plane”。',en:'We are not selling a “Hermes Bot” — we are presenting an “AI Operations Control Plane”.'},
+s13_title:{zh:'总结',en:'Closing'},
+s13_recap:{zh:'从故障到验证恢复',en:'From Incident to Verified Recovery'},
+s_normal:{zh:'正常',en:'Healthy'},s_fault:{zh:'故障',en:'Critical'},
+s_approve:{zh:'批准执行',en:'Approve Change'},s_reject:{zh:'拒绝执行',en:'Reject Change'},
+s_sec:{zh:'秒',en:'seconds'},s_min:{zh:'分钟',en:'minutes'}
+};
+function t(k){return T[k]?T[k][lang]||T[k].zh:k}
+function zh(){return lang==='zh'}
+
+function archSvg(){
+  return [
+    '<svg viewBox="0 0 1160 420" width="1160" height="420" xmlns="http://www.w3.org/2000/svg">',
+    '<defs><marker id="ah" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#00d4ff"/></marker></defs>',
+    '<rect x="20" y="140" width="130" height="60" rx="8" fill="#162447" stroke="#00d4ff" stroke-width="1.5"/>',
+    '<text x="85" y="175" text-anchor="middle" fill="#e8eaf6" font-size="14" font-weight="600">Browser</text>',
+    '<line x1="150" y1="170" x2="195" y2="170" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#ah)"/>',
+    '<rect x="200" y="110" width="170" height="120" rx="8" fill="#162447" stroke="#00d4ff" stroke-width="1.5"/>',
+    '<text x="285" y="148" text-anchor="middle" fill="#00d4ff" font-size="13" font-weight="700">AI Ops Web UI</text>',
+    '<text x="285" y="168" text-anchor="middle" fill="#7986cb" font-size="11">'+(zh()?'中英文':'zh / EN')+'</text>',
+    '<text x="285" y="188" text-anchor="middle" fill="#7986cb" font-size="10">aiops-ui</text>',
+    '<line x1="370" y1="170" x2="415" y2="170" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#ah)"/>',
+    '<rect x="420" y="90" width="190" height="160" rx="8" fill="#1b2d52" stroke="#00d4ff" stroke-width="2"/>',
+    '<text x="515" y="125" text-anchor="middle" fill="#00d4ff" font-size="13" font-weight="700">AI Ops API</text>',
+    '<text x="515" y="148" text-anchor="middle" fill="#7986cb" font-size="11">FastAPI + SQLite</text>',
+    '<text x="515" y="168" text-anchor="middle" fill="#7986cb" font-size="10">'+(zh()?'状态机 / 审批 / 审计':'State / Approval / Audit')+'</text>',
+    '<text x="515" y="188" text-anchor="middle" fill="#7986cb" font-size="10">aiops-api</text>',
+    '<line x1="610" y1="145" x2="655" y2="100" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#ah)"/>',
+    '<line x1="610" y1="195" x2="655" y2="260" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#ah)"/>',
+    '<rect x="660" y="50" width="180" height="110" rx="8" fill="#1b2d52" stroke="#00e676" stroke-width="2"/>',
+    '<text x="750" y="85" text-anchor="middle" fill="#00e676" font-size="13" font-weight="700">Hermes Agent</text>',
+    '<text x="750" y="108" text-anchor="middle" fill="#7986cb" font-size="11">'+(zh()?'推理 / RCA / 规划':'Reasoning / RCA / Planning')+'</text>',
+    '<text x="750" y="128" text-anchor="middle" fill="#7986cb" font-size="10">hermes</text>',
+    '<rect x="660" y="210" width="180" height="110" rx="8" fill="#1b2d52" stroke="#ffab00" stroke-width="2"/>',
+    '<text x="750" y="248" text-anchor="middle" fill="#ffab00" font-size="13" font-weight="700">Ops MCP</text>',
+    '<text x="750" y="271" text-anchor="middle" fill="#7986cb" font-size="11">'+(zh()?'读/写 / 护栏 / 审批':'Read/Write / Guardrails / Approval')+'</text>',
+    '<text x="750" y="291" text-anchor="middle" fill="#7986cb" font-size="10">ops-mcp</text>',
+    '<line x1="840" y1="265" x2="885" y2="220" stroke="#ffab00" stroke-width="1.5" marker-end="url(#ah)"/>',
+    '<line x1="840" y1="265" x2="885" y2="310" stroke="#ffab00" stroke-width="1.5" marker-end="url(#ah)"/>',
+    '<rect x="890" y="170" width="130" height="80" rx="8" fill="#162447" stroke="#ff3d5a" stroke-width="1.5"/>',
+    '<text x="955" y="205" text-anchor="middle" fill="#ff3d5a" font-size="12" font-weight="700">Demo Gateway</text>',
+    '<text x="955" y="225" text-anchor="middle" fill="#7986cb" font-size="10">'+(zh()?'故障对象':'Fault Target')+'</text>',
+    '<rect x="890" y="270" width="130" height="80" rx="8" fill="#162447" stroke="#00e676" stroke-width="1.5"/>',
+    '<text x="955" y="305" text-anchor="middle" fill="#00e676" font-size="12" font-weight="700">Demo Backend</text>',
+    '<text x="955" y="325" text-anchor="middle" fill="#7986cb" font-size="10">'+(zh()?'正常应用':'Healthy App')+'</text>',
+    '<rect x="920" y="50" width="200" height="70" rx="8" fill="#0f1f3a" stroke="#ffab00" stroke-width="1.5" stroke-dasharray="4,3"/>',
+    '<text x="1020" y="82" text-anchor="middle" fill="#ffab00" font-size="12" font-weight="600">Huawei MaaS / GLM</text>',
+    '<text x="1020" y="100" text-anchor="middle" fill="#7986cb" font-size="10">'+(zh()?'模型推理服务':'Model Inference')+'</text>',
+    '<line x1="840" y1="90" x2="920" y2="85" stroke="#ffab00" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#ah)"/>',
+    '<rect x="20" y="340" width="1120" height="65" rx="6" fill="none" stroke="rgba(0,212,255,0.15)" stroke-width="1" stroke-dasharray="6,4"/>',
+    '<text x="580" y="362" text-anchor="middle" fill="#7986cb" font-size="12">Single ECS ~4 vCPU / 8 GB RAM</text>',
+    '<text x="580" y="382" text-anchor="middle" fill="#7986cb" font-size="11">Docker Compose: aiops-ui | aiops-api | hermes | ops-mcp | demo-gateway | demo-backend</text>',
+    '</svg>'
+  ].join('');
+}
+
+function faultSvg(){
+  return [
+    '<svg viewBox="0 0 1100 200" width="1100" height="200" xmlns="http://www.w3.org/2000/svg">',
+    '<defs><marker id="ah2" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#00d4ff"/></marker><marker id="ahr" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#ff3d5a"/></marker></defs>',
+    '<rect x="30" y="60" width="160" height="60" rx="8" fill="#162447" stroke="#e8eaf6" stroke-width="1.5"/>',
+    '<text x="110" y="95" text-anchor="middle" fill="#e8eaf6" font-size="13" font-weight="600">Customer Portal</text>',
+    '<line x1="190" y1="90" x2="250" y2="90" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#ah2)"/>',
+    '<rect x="255" y="60" width="160" height="60" rx="8" fill="#162447" stroke="#ff3d5a" stroke-width="1.5"/>',
+    '<text x="335" y="95" text-anchor="middle" fill="#ff3d5a" font-size="13" font-weight="600">demo-gateway</text>',
+    '<line x1="415" y1="90" x2="475" y2="90" stroke="#ff3d5a" stroke-width="1.5" marker-end="url(#ahr)"/>',
+    '<text x="445" y="78" text-anchor="middle" fill="#ff3d5a" font-size="11" font-weight="700">502</text>',
+    '<rect x="480" y="60" width="180" height="60" rx="8" fill="#162447" stroke="#ff3d5a" stroke-width="1.5" stroke-dasharray="4,3"/>',
+    '<text x="570" y="88" text-anchor="middle" fill="#ff3d5a" font-size="12">:8081</text>',
+    '<text x="570" y="105" text-anchor="middle" fill="#7986cb" font-size="10">'+(zh()?'连接拒绝':'connection refused')+'</text>',
+    '<rect x="720" y="60" width="180" height="60" rx="8" fill="#162447" stroke="#00e676" stroke-width="1.5"/>',
+    '<text x="810" y="88" text-anchor="middle" fill="#00e676" font-size="12">:8080</text>',
+    '<text x="810" y="105" text-anchor="middle" fill="#7986cb" font-size="10">200 OK</text>',
+    '<text x="660" y="155" text-anchor="middle" fill="#ff3d5a" font-size="12" font-weight="600">'+(zh()?'注入故障后: backend_url = demo-backend:8081':'After inject: backend_url = demo-backend:8081')+'</text>',
+    '<text x="810" y="155" text-anchor="middle" fill="#00e676" font-size="12" font-weight="600">'+(zh()?'实际监听: demo-backend:8080':'Actual listener: demo-backend:8080')+'</text>',
+    '</svg>'
+  ].join('');
+}
+
+function stateMachineSvg(){
+  var labels=[
+    {n:'1',en:'OBSERVE',sub:zh()?'收集证据':'Collect evidence',c:'#00d4ff'},
+    {n:'2',en:'DIAGNOSE',sub:zh()?'根因分析':'Root Cause Analysis',c:'#00d4ff'},
+    {n:'3',en:'PLAN',sub:zh()?'修复/风险/回滚':'Fix / Risk / Rollback',c:'#00d4ff'},
+    {n:'4',en:'APPROVAL',sub:zh()?'人工审批':'Human Decision',c:'#ffab00'},
+    {n:'5',en:'EXECUTE',sub:zh()?'受控执行':'Controlled Remediation',c:'#00e676'},
+    {n:'6',en:'VERIFY',sub:zh()?'恢复验证':'Recovery Validation',c:'#00e676'},
+    {n:'7',en:'RECORD',sub:zh()?'事件报告':'Incident Report',c:'#00d4ff'}
+  ];
+  var svg='<svg viewBox="0 0 1140 120" width="1140" height="120" xmlns="http://www.w3.org/2000/svg">';
+  svg+='<defs><marker id="ah3" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#00d4ff"/></marker></defs>';
+  var x=20;
+  for(var i=0;i<labels.length;i++){
+    var lb=labels[i];var w=140;
+    svg+='<rect x="'+x+'" y="15" width="'+w+'" height="80" rx="10" fill="#162447" stroke="'+lb.c+'" stroke-width="2"/>';
+    svg+='<circle cx="'+(x+20)+'" cy="40" r="13" fill="'+lb.c+'" opacity="0.2" stroke="'+lb.c+'" stroke-width="1.5"/>';
+    svg+='<text x="'+(x+20)+'" y="45" text-anchor="middle" fill="'+lb.c+'" font-size="13" font-weight="700">'+lb.n+'</text>';
+    svg+='<text x="'+(x+w/2+8)+'" y="45" text-anchor="middle" fill="'+lb.c+'" font-size="11" font-weight="700">'+lb.en+'</text>';
+    svg+='<text x="'+(x+w/2)+'" y="72" text-anchor="middle" fill="#7986cb" font-size="10">'+lb.sub+'</text>';
+    if(i<labels.length-1){svg+='<line x1="'+(x+w+1)+'" y1="55" x2="'+(x+w+19)+'" y2="55" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#ah3)"/>';}
+    x+=w+22;
+  }
+  svg+='</svg>';
+  return svg;
+}
+
+function demoProdSvg(){
+  return [
+    '<svg viewBox="0 0 1060 210" width="1060" height="210" xmlns="http://www.w3.org/2000/svg">',
+    '<defs><marker id="ah4" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#00d4ff"/></marker></defs>',
+    '<text x="20" y="30" fill="#7986cb" font-size="13" font-weight="600">'+(zh()?'演示':'Demo')+'</text>',
+    '<rect x="20" y="45" width="140" height="50" rx="6" fill="#162447" stroke="#00e676" stroke-width="1.5"/>',
+    '<text x="90" y="75" text-anchor="middle" fill="#00e676" font-size="12" font-weight="600">Hermes</text>',
+    '<line x1="160" y1="70" x2="210" y2="70" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#ah4)"/>',
+    '<rect x="215" y="45" width="120" height="50" rx="6" fill="#162447" stroke="#ffab00" stroke-width="1.5"/>',
+    '<text x="275" y="75" text-anchor="middle" fill="#ffab00" font-size="12" font-weight="600">MCP</text>',
+    '<line x1="335" y1="70" x2="385" y2="70" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#ah4)"/>',
+    '<rect x="390" y="45" width="180" height="50" rx="6" fill="#162447" stroke="#7986cb" stroke-width="1.5"/>',
+    '<text x="480" y="75" text-anchor="middle" fill="#7986cb" font-size="12">'+(zh()?'演示基础设施':'Demo Infrastructure')+'</text>',
+    '<text x="20" y="125" fill="#7986cb" font-size="13" font-weight="600">'+(zh()?'生产':'Production')+'</text>',
+    '<rect x="20" y="140" width="140" height="50" rx="6" fill="#162447" stroke="#00e676" stroke-width="1.5"/>',
+    '<text x="90" y="170" text-anchor="middle" fill="#00e676" font-size="12" font-weight="600">Hermes</text>',
+    '<line x1="160" y1="165" x2="210" y2="165" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#ah4)"/>',
+    '<rect x="215" y="140" width="160" height="50" rx="6" fill="#162447" stroke="#ffab00" stroke-width="1.5"/>',
+    '<text x="295" y="170" text-anchor="middle" fill="#ffab00" font-size="12" font-weight="600">AI Ops MCP</text>',
+    '<line x1="375" y1="165" x2="425" y2="165" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#ah4)"/>',
+    '<rect x="430" y="130" width="250" height="70" rx="6" fill="#162447" stroke="#00d4ff" stroke-width="1.5"/>',
+    '<text x="555" y="160" text-anchor="middle" fill="#00d4ff" font-size="11">AWX | Argo | Terraform</text>',
+    '<text x="555" y="180" text-anchor="middle" fill="#7986cb" font-size="10">COC | Huawei Cloud API</text>',
+    '<line x1="680" y1="165" x2="730" y2="165" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#ah4)"/>',
+    '<rect x="735" y="130" width="280" height="70" rx="6" fill="#162447" stroke="#7986cb" stroke-width="1.5"/>',
+    '<text x="875" y="160" text-anchor="middle" fill="#7986cb" font-size="11">ECS | CCE | '+(zh()?'云资源':'Cloud Resources')+'</text>',
+    '<text x="875" y="180" text-anchor="middle" fill="#7986cb" font-size="10">Prometheus | Loki</text>',
+    '</svg>'
+  ].join('');
+}
+
+var slides=[];
+function buildSlides(){
+  slides=[];
+  slides.push(function(){
+    return '<div class="center" style="flex:1"><h1 style="font-size:48px;color:var(--cyan);margin-bottom:16px">'+t('s1_title')+'</h1><h2 style="font-size:36px;color:var(--white);margin-bottom:20px">'+t('s1_sub')+'</h2><p class="tagline" style="font-size:22px;max-width:800px;margin-bottom:24px">'+t('s1_tag')+'</p><p class="note" style="font-size:18px">'+t('s1_note')+'</p></div>';
+  });
+  slides.push(function(){
+    return '<div class="center" style="flex:1"><div style="max-width:900px"><div class="core-msg">'+t('s2_a')+'</div><div class="core-msg">'+t('s2_b')+'</div><div class="core-msg">'+t('s2_c')+'</div><div class="closing-msg" style="margin-top:20px">'+t('s2_close')+'</div></div></div>';
+  });
+  slides.push(function(){
+    var rows=[['aiops-ui',t('s3_c1')],['aiops-api',t('s3_c2')],['hermes',t('s3_c3')],['ops-mcp',t('s3_c4')],['demo-gateway',t('s3_c5')],['demo-backend',t('s3_c6')]];
+    var chips=rows.map(function(r){return '<div class="chip"><span class="code">'+r[0]+'</span> — '+r[1]+'</div>';}).join('');
+    return '<h2>'+t('s3_title')+'</h2><div class="slide-content"><p class="sub" style="margin-bottom:6px">'+t('s3_ecs')+'</p>'+archSvg()+'<div class="chip-grid">'+chips+'</div></div>';
+  });
+  slides.push(function(){
+    return '<h2>'+t('s4_title')+'</h2><div class="slide-content"><p style="font-size:22px;font-weight:700;margin-bottom:10px">'+t('s4_1')+'</p>'+faultSvg()+'<div class="two-col" style="margin-top:10px"><div class="card"><h4>'+(zh()?'正常配置':'Normal Config')+'</h4><p><span class="code">backend_url = http://demo-backend:8080</span></p></div><div class="card" style="border-color:var(--red)"><h4 style="color:var(--red)">'+(zh()?'注入故障后':'After Inject')+'</h4><p><span class="code">backend_url = http://demo-backend:8081</span></p></div></div><div class="root-cause" style="border-color:var(--amber);background:rgba(255,171,0,.06);margin-top:8px"><h3 style="color:var(--amber)">'+t('s4_why')+'</h3></div></div>';
+  });
+  slides.push(function(){
+    var tools=[
+      ['check_portal','Read',zh()?'Portal HTTP 状态':'Portal HTTP status'],
+      ['check_backend','Read',zh()?'Backend HTTP 状态':'Backend HTTP status'],
+      ['get_gateway_logs','Read',zh()?'最近 Gateway 错误日志':'Recent Gateway errors'],
+      ['get_gateway_config','Read',zh()?'当前 upstream 配置':'Current upstream config'],
+      ['get_recent_changes','Read',zh()?'最近配置变更':'Recent config changes'],
+      ['apply_gateway_fix','Write',zh()?'修复 upstream':'Fix upstream'],
+      ['verify_service','Read',zh()?'完整修复后验证':'Full post-fix validation']
+    ];
+    var tr=tools.map(function(tl){return '<tr><td><span class="code">'+tl[0]+'</span></td><td><span class="tool-badge '+(tl[1]==='Read'?'tool-r':'tool-w')+'">'+tl[1]+'</span></td><td>'+tl[2]+'</td></tr>';}).join('');
+    return '<h2>'+t('s5_title')+'</h2><div class="slide-content"><div class="two-col"><div class="card" style="border-color:var(--red)"><h4 style="color:var(--red)">'+t('s5_not')+'</h4></div><div class="card" style="border-color:var(--green)"><h4 style="color:var(--green)">'+t('s5_but')+'</h4></div></div><p style="margin-top:10px;font-weight:700;font-size:22px">'+t('s5_tools')+'</p><table><tr><th>'+(zh()?'工具名':'Tool')+'</th><th>'+(zh()?'类型':'Type')+'</th><th>'+(zh()?'说明':'Description')+'</th></tr>'+tr+'</table><div class="key-principle">'+t('s5_key')+'</div></div>';
+  });
+  slides.push(function(){
+    return '<div class="center" style="flex:1"><h2>'+t('s6_title')+'</h2><div style="margin-top:16px">'+stateMachineSvg()+'</div></div>';
+  });
+  slides.push(function(){
+    var obsItems=[
+      ['check_portal()','→ HTTP 502'],
+      ['check_backend()','→ HTTP 200 OK  (✓ '+(zh()?'正常':'healthy')+', ✗ '+(zh()?'路径异常':'path unhealthy')+')'],
+      ['get_gateway_logs()','→ upstream connection failed, target: demo-backend:8081, connection refused'],
+      ['get_gateway_config()','→ backend_url: http://demo-backend:8081'],
+      ['get_recent_changes()','→ 14:32:17 backend upstream changed 8080 → 8081']
+    ];
+    var obsRows=obsItems.map(function(item){return '<div style="display:flex;gap:10px;padding:4px 0;font-size:18px;line-height:1.5"><span class="code" style="min-width:180px;flex-shrink:0">'+item[0]+'</span><span>'+item[1]+'</span></div>';}).join('');
+    var evIds=['E01','E02','E03','E04','E05'];
+    var evTexts=zh()?[
+      'Portal 返回 HTTP 502',
+      'Backend 响应 HTTP 200',
+      'Gateway 日志：connection refused demo-backend:8081',
+      'Gateway 配置：backend_url = demo-backend:8081',
+      'Backend 实际监听：demo-backend:8080'
+    ]:[
+      'Portal returns HTTP 502',
+      'Backend responds HTTP 200',
+      'Gateway log: connection refused demo-backend:8081',
+      'Gateway config: backend_url = demo-backend:8081',
+      'Backend actual listener: demo-backend:8080'
+    ];
+    var evRows=evIds.map(function(id,i){return '<div class="evidence"><strong>'+id+'</strong> '+evTexts[i]+'</div>';}).join('');
+    return '<h2>'+t('s7_title')+'</h2><div class="slide-content"><div class="two-col"><div><h3 style="color:var(--cyan);font-size:20px;margin-bottom:8px">'+(zh()?'观察序列':'Observe Sequence')+'</h3>'+obsRows+'</div><div><h3 style="color:var(--amber);font-size:20px;margin-bottom:8px">'+(zh()?'证据板':'Evidence Board')+'</h3>'+evRows+'</div></div><div class="root-cause" style="margin-top:8px"><h3>'+t('s7_rc')+'</h3></div><div class="key-principle">'+t('s7_emph')+'</div></div>';
+  });
+  slides.push(function(){
+    return '<h2>'+t('s8_title')+'</h2><div class="slide-content"><div class="plan-box"><div class="plan-row"><span class="plan-label">'+t('s8_action')+':</span><span>'+t('s8_v1')+'</span></div><div class="plan-row"><span class="plan-label">'+t('s8_impact')+':</span><span>'+t('s8_v2')+'</span></div><div class="plan-row"><span class="plan-label">'+t('s8_risk')+':</span><span style="color:var(--green);font-weight:700">LOW</span></div><div class="plan-row"><span class="plan-label">'+t('s8_blast')+':</span><span>'+t('s8_v3')+'</span></div><div class="plan-row"><span class="plan-label">'+t('s8_time')+':</span><span>&lt; 30 '+t('s_sec')+'</span></div><div class="plan-row"><span class="plan-label">'+t('s8_rollback')+':</span><span>'+t('s8_v4')+'</span></div><div class="plan-row"><span class="plan-label">'+t('s8_checks')+':</span><span>1. Backend = HTTP 200 &nbsp; 2. Portal = HTTP 200 &nbsp; 3. '+(zh()?'无新 Gateway 错误':'No new gateway errors')+'</span></div><div class="plan-row" style="margin-top:8px"><span class="plan-label">'+t('s8_status')+':</span><span style="color:var(--amber);font-weight:700">'+t('s8_v5')+'</span></div></div><div style="display:flex;gap:24px;margin-top:16px;justify-content:center"><button class="btn-approve">'+t('s_approve')+'</button><button class="btn-reject">'+t('s_reject')+'</button></div><div class="talk-point" style="margin-top:16px">'+t('s8_talk')+'</div></div>';
+  });
+  slides.push(function(){
+    var h2=zh()?'审批后 aiops-api 创建：':'On Approve, aiops-api creates:';
+    var h3=zh()?'审批事件传递给 Hermes。':'Approval event passed to Hermes.';
+    var h4=zh()?'调用':'calls';
+    var h5=zh()?'工具首先验证：Token 有效？操作匹配已审批计划？未过期？然后执行。':'MCP tool first validates: Token valid? Action matches approved plan? Not expired? Then executes.';
+    var h6=zh()?'验证结果':'Verify Results';
+    var h7=zh()?'新 502 错误':'New 502 errors';
+    return '<h2>'+t('s9_title')+'</h2><div class="slide-content"><div class="code-block" style="margin-bottom:12px"><p>'+h2+'</p><p>approval_token: <span style="color:var(--green)">APP-20260921-001</span></p><p>scope: <span style="color:var(--cyan)">fix_gateway_upstream</span></p><p>expires: <span style="color:var(--amber)">5 '+t('s_min')+'</span></p></div><p style="font-size:20px;margin-bottom:8px">'+h3+'</p><div class="code-block" style="margin-bottom:12px"><p>Hermes '+h4+': <span style="color:var(--cyan)">apply_gateway_fix</span>(target=&quot;demo-gateway&quot;, port=8080, approval_token=&quot;APP-...&quot;)</p></div><p style="font-size:20px;margin-bottom:8px">'+h5+'</p><div class="key-principle">'+t('s9_key')+'</div><div style="margin-top:10px;padding:14px;border:2px solid var(--green);border-radius:8px;background:rgba(0,230,118,.06)"><h3 style="color:var(--green);font-size:20px;margin-bottom:8px">'+h6+'</h3><div class="status-row"><span class="dot dot-g"></span>Backend 200 ✓</div><div class="status-row"><span class="dot dot-g"></span>Gateway 200 ✓</div><div class="status-row"><span class="dot dot-g"></span>Customer Portal 200 ✓</div><div class="status-row"><span class="dot dot-g"></span>'+h7+' 0 ✓</div></div><div style="margin-top:10px;padding:10px;border:1px solid var(--green);border-radius:6px;background:rgba(0,230,118,.06);text-align:center;font-size:24px;font-weight:700"><span style="color:var(--red)">● INCIDENT</span> → <span style="color:var(--green)">● RECOVERED</span></div></div>';
+  });
+  slides.push(function(){
+    var inc=zh()?'事件编号':'Incident';
+    var st=zh()?'状态':'Status';
+    var rc=zh()?'根因':'Root Cause';
+    var ev=zh()?'证据':'Evidence';
+    var fix=zh()?'修复':'Remediation';
+    var appr=zh()?'审批':'Approval';
+    var ver=zh()?'验证':'Verification';
+    var rcText=zh()?'Gateway upstream 端口被错误地从 8080 改为 8081。':'Gateway upstream port was incorrectly changed from 8080 to 8081.';
+    var fixText=zh()?'恢复 upstream 配置为端口 8080。':'Restored upstream configuration to port 8080.';
+    var apprText=zh()?'审批人：James 16:28:31':'Approved by: James 16:28:31';
+    var verText=zh()?'网关 HTTP 200, Backend HTTP 200, 无新错误':'Portal HTTP 200, Backend HTTP 200, No new errors';
+    return '<h2>'+t('s10_title')+'</h2><div class="slide-content"><div class="plan-box"><div class="plan-row"><span class="plan-label">'+inc+':</span><span style="color:var(--cyan)">INC-2026-0921-001</span></div><div class="plan-row"><span class="plan-label">'+st+':</span><span style="color:var(--green);font-weight:700">RESOLVED</span></div><div class="plan-row"><span class="plan-label">'+rc+':</span><span>'+rcText+'</span></div><div class="plan-row"><span class="plan-label">'+ev+':</span><span>E01–E05</span></div><div class="plan-row"><span class="plan-label">'+fix+':</span><span>'+fixText+'</span></div><div class="plan-row"><span class="plan-label">'+appr+':</span><span>'+apprText+'</span></div><div class="plan-row"><span class="plan-label">'+ver+':</span><span>'+verText+'</span></div><div class="plan-row"><span class="plan-label">MTTR:</span><span style="color:var(--green);font-weight:700">3m 42s</span></div></div></div>';
+  });
+  slides.push(function(){
+    var steps=['Observe ✓','Diagnose ✓','Plan ✓','Approval ⏳','Execute','Verify','Report'];
+    var timeline=steps.map(function(s,i){return '<div style="font-size:15px;padding:3px 0;color:'+(i<3?'var(--green)':i===3?'var(--amber)':'var(--gray)')+'">'+(i+1)+' '+s+'</div>';}).join('');
+    var evidence=['E01 HTTP 502','E02 Backend OK','E03 Log','E04 Config'].map(function(e){return '<div style="font-size:15px;padding:3px 0;color:var(--amber)">'+e+'</div>';}).join('');
+    var chatMsg=zh()?'帮我检查 Customer Portal 为什么访问失败':'Help me check why Customer Portal is failing';
+    var svcSt=zh()?'服务状态':'SERVICE STATUS';
+    var incTl=zh()?'事件时间线':'INCIDENT TIMELINE';
+    return '<h2>'+t('s11_title')+'</h2><div class="slide-content"><div class="mockup"><div class="mockup-header"><span style="color:var(--cyan);font-weight:700;font-size:16px">Huawei Cloud AI Operations</span><span style="font-size:14px;color:var(--gray)">中文 | English</span></div><div class="mockup-body"><div class="three-col"><div class="card"><h4>'+svcSt+'</h4><div class="status-row"><span class="dot dot-r"></span>Portal <strong style="color:var(--red)">'+t('s_fault')+'</strong></div><div class="status-row"><span class="dot dot-r"></span>Gateway <strong style="color:var(--red)">'+t('s_fault')+'</strong></div><div class="status-row"><span class="dot dot-g"></span>Backend <strong style="color:var(--green)">'+t('s_normal')+'</strong></div></div><div class="card"><h4>'+incTl+'</h4>'+timeline+'</div><div class="card"><h4>EVIDENCE</h4>'+evidence+'</div></div></div><div class="mockup-footer"><div style="display:flex;align-items:center;gap:10px"><span style="color:var(--cyan);font-size:14px;font-weight:600">AI Operations Engineer</span><span style="color:var(--gray);font-size:14px">› '+chatMsg+'</span></div><div style="display:flex;gap:10px;margin-top:8px"><span style="padding:5px 16px;border:1px solid var(--green);border-radius:4px;font-size:14px;color:var(--green)">'+t('s_approve')+'</span><span style="padding:5px 16px;border:1px solid var(--red);border-radius:4px;font-size:14px;color:var(--red)">'+t('s_reject')+'</span></div></div></div></div>';
+  });
+  slides.push(function(){
+    return '<h2>'+t('s12_title')+'</h2><div class="slide-content"><p style="font-size:20px;line-height:1.6">'+t('s12_1')+'</p><div class="plan-box" style="margin-top:10px"><p style="font-weight:700;font-size:20px">'+t('s12_2')+'</p></div><p style="margin-top:10px;font-size:20px;line-height:1.6">'+t('s12_3')+'</p><div style="margin-top:10px">'+demoProdSvg()+'</div><div class="key-principle" style="margin-top:10px">'+t('s12_msg')+'</div></div>';
+  });
+  slides.push(function(){
+    return '<div class="center" style="flex:1"><h1 style="font-size:44px;color:var(--cyan);margin-bottom:20px">'+t('s13_title')+'</h1><div style="max-width:800px"><div class="core-msg">'+t('s2_a')+'</div><div class="core-msg">'+t('s2_b')+'</div><div class="core-msg">'+t('s2_c')+'</div></div><h2 style="margin-top:28px;font-size:36px;color:var(--green)">'+t('s13_recap')+'</h2></div>';
+  });
+}
+
+var cur=0;
+function resizeStage(){
+  var wrap=document.getElementById('stage-wrap');
+  var stage=document.getElementById('stage');
+  if(!wrap||!stage)return;
+  var ww=wrap.clientWidth;
+  var wh=wrap.clientHeight;
+  var k=Math.min(ww/1280,wh/720);
+  stage.style.transform='scale('+k+')';
+}
+function render(){
+  buildSlides();
+  var stage=document.getElementById('stage');
+  stage.innerHTML='';
+  for(var i=0;i<slides.length;i++){
+    var div=document.createElement('div');
+    div.className='slide'+(i===cur?' active':'');
+    div.innerHTML=slides[i]();
+    stage.appendChild(div);
+  }
+  document.getElementById('slide-counter').textContent=(cur+1)+' / '+slides.length;
+  document.getElementById('progress').style.width=((cur+1)/slides.length*100)+'%';
+  resizeStage();
+}
+function next(){if(cur<slides.length-1){cur++;render()}}
+function prev(){if(cur>0){cur--;render()}}
+function toggleLang(){
+  lang=lang==='zh'?'en':'zh';
+  document.getElementById('lang-zh').className=lang==='zh'?'active':'inactive';
+  document.getElementById('lang-en').className=lang==='en'?'active':'inactive';
+  render();
+}
+document.addEventListener('keydown', function(e){
+  if(e.key==='ArrowRight'||e.key===' '){e.preventDefault();next()}
+  else if(e.key==='ArrowLeft'){e.preventDefault();prev()}
+});
+var wheelLock=false;
+document.addEventListener('wheel', function(e){
+  if(Math.abs(e.deltaY)<8)return;
+  var el=e.target;
+  while(el&&el!==document.body){
+    if(el.classList&&el.classList.contains('slide-content')){
+      var canScroll=el.scrollHeight>el.clientHeight+2;
+      if(canScroll){
+        var atTop=el.scrollTop<=0;
+        var atBottom=el.scrollTop+el.clientHeight>=el.scrollHeight-2;
+        if((e.deltaY>0&&!atBottom)||(e.deltaY<0&&!atTop))return;
+      }
+      break;
+    }
+    el=el.parentNode;
+  }
+  if(wheelLock)return;
+  wheelLock=true;
+  setTimeout(function(){wheelLock=false;},450);
+  if(e.deltaY>0){next()}else{prev()}
+},{passive:true});
+window.addEventListener('resize',resizeStage);
+render();
+</script>
+</body>
+</html>

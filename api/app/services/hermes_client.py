@@ -24,7 +24,7 @@ async def call_hmes(messages: list[dict], tools: list[dict] | None = None) -> di
 
 async def check_hermes_health() -> bool:
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
+        async with httpx.AsyncClient(timeout=3.0) as client:
             resp = await client.get(
                 f"{HERMES_API_URL}/models",
                 headers={"Authorization": f"Bearer {HERMES_API_SERVER_KEY}"},
