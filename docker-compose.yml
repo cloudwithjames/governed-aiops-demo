@@ -58,8 +58,9 @@ services:
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz')"]
       interval: 10s
-      timeout: 5s
+      timeout: 10s
       retries: 5
+      start_period: 15s
     restart: unless-stopped
 
   ops-mcp:
@@ -90,27 +91,31 @@ services:
 
   hermes:
     image: nousresearch/hermes-agent:latest
-    container_name: hermes
+    container_name: aiops-hermes
+    command: gateway run
     networks: [aiops-net]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       ops-mcp:
         condition: service_healthy
     volumes:
-      - hermes-data:/app/data
+      - hermes-data:/opt/data
+      - ./hermes/config.yaml:/opt/data/config.yaml:ro
       - ./hermes/skills:/app/skills:ro
     environment:
-      - HERMES_MODEL_NAME=${HERMES_MODEL_NAME}
-      - HERMES_MODEL_BASE_URL=${HERMES_MODEL_BASE_URL}
-      - HERMES_MODEL_API_KEY=${HERMES_MODEL_API_KEY}
-      - HERMES_API_SERVER_KEY=${HERMES_API_SERVER_KEY}
+      - HERMES_UID=1000
+      - HERMES_GID=1000
+      - API_SERVER_HOST=0.0.0.0
+      - API_SERVER_KEY=${HERMES_API_SERVER_KEY}
+      - OPENAI_API_KEY=${HERMES_MODEL_API_KEY}
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8642/v1/models')"]
+      test: ["CMD", "python", "-c", "import socket; s=socket.socket(); s.settimeout(3); s.connect(('localhost',8642)); s.close()"]
       interval: 15s
-      timeout: 10s
+      timeout: 5s
       retries: 5
-      start_period: 30s
+      start_period: 60s
     restart: unless-stopped
-    profiles: ["hermes"]
 
   aiops-ui:
     build: ./ui
