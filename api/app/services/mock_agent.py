@@ -84,7 +84,7 @@ async def run_mock_diagnosis(incident_id: str):
     return {"root_cause": root_cause, "plan": plan}
 
 
-async def run_mock_execute(incident_id: str):
+async def run_mock_execute(incident_id: str, source: str = "mock-agent"):
     incident = await incident_service.get_incident(incident_id)
     if not incident:
         raise ValueError(f"incident {incident_id} not found")
@@ -94,7 +94,7 @@ async def run_mock_execute(incident_id: str):
         raise ValueError("no active approval")
 
     await incident_service.update_incident_state(incident_id, IncidentState.EXECUTING.value)
-    await event_service.create_event(incident_id, "EXECUTE", "agent", "mock-agent",
+    await event_service.create_event(incident_id, "EXECUTE", "agent", source,
                                      "EXECUTION_STARTED", {})
 
     await asyncio.sleep(0.5)

@@ -96,15 +96,37 @@ Respond in the exact JSON format specified."""
         ])
 
         text = llm_response.strip()
-        if text.startswith("```"):
-            text = text.split("```")[1]
-            if text.startswith("json"):
-                text = text[4:]
-            text = text.strip()
-        if text.endswith("```"):
-            text = text[:-3].strip()
 
-        parsed = json.loads(text)
+        if "```" in text:
+            parts = text.split("```")
+            for part in parts:
+                part = part.strip()
+                if part.startswith("json"):
+                    part = part[4:].strip()
+                if part.startswith("{") and part.rstrip().endswith("}"):
+                    text = part
+                    break
+
+        if not text.startswith("{"):
+            first_brace = text.find("{")
+            last_brace = text.rfind("}")
+            if first_brace != -1 and last_brace != -1:
+                text = text[first_brace:last_brace + 1]
+
+        for attempt in range(3):
+            try:
+                parsed = json.loads(text)
+                break
+            except json.JSONDecodeError as je:
+                if attempt == 0:
+                    text = text.replace("\n", " ").replace(",}", "}").replace(",]", "]")
+                elif attempt == 1:
+                    import re
+                    text = re.sub(r',\s*([}\]])', r'\1', text)
+                    text = re.sub(r'"\s*:\s*"', '": "', text)
+                else:
+                    raise je
+
         root_cause = parsed.get("root_cause", {})
         plan = parsed.get("plan", {})
     except Exception as e:
@@ -139,4 +161,4 @@ Respond in the exact JSON format specified."""
 
 async def run_real_execute(incident_id: str):
     from .mock_agent import run_mock_execute
-    return await run_mock_execute(incident_id)
+    return await run_mock_execute(incident_id, source="hermes")
