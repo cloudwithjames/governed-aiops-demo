@@ -1,0 +1,34 @@
+model:
+  default: "${HERMES_MODEL_NAME}"
+  provider: custom
+  base_url: "${HERMES_MODEL_BASE_URL}"
+  key_env: HERMES_MODEL_API_KEY
+
+mcp_servers:
+  governed_aiops:
+    url: "http://ops-mcp:8765/mcp"
+    enabled: true
+    timeout: 120
+    connect_timeout: 30
+    tools:
+      include:
+        - check_portal
+        - check_backend
+        - get_gateway_logs
+        - get_gateway_config
+        - get_recent_changes
+        - apply_gateway_fix
+        - verify_service
+
+gateway:
+  api_server:
+    enabled: true
+    host: "0.0.0.0"
+    port: 8642
+    model_name: "hermes-agent"
+    max_concurrent_runs: 2
+    api_key: "${HERMES_API_SERVER_KEY}"
+
+skills:
+  - path: "/app/skills/governed-aiops.md"
+    enabled: true

@@ -1,0 +1,130 @@
+services:
+  demo-backend:
+    build: ./demo-backend
+    container_name: demo-backend
+    networks: [aiops-net]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/healthz')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  demo-gateway:
+    build: ./demo-gateway
+    container_name: demo-gateway
+    networks: [aiops-net]
+    depends_on:
+      demo-backend:
+        condition: service_healthy
+    environment:
+      - DEMO_ADMIN_TOKEN=${DEMO_ADMIN_TOKEN}
+      - NORMAL_BACKEND_URL=${NORMAL_BACKEND_URL}
+      - FAULT_BACKEND_URL=${FAULT_BACKEND_URL}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/healthz')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  aiops-api:
+    build: ./api
+    container_name: aiops-api
+    networks: [aiops-net]
+    depends_on:
+      demo-gateway:
+        condition: service_healthy
+    volumes:
+      - aiops-data:/data
+    environment:
+      - AIOPS_AGENT_MODE=${AIOPS_AGENT_MODE}
+      - AIOPS_DB_PATH=/data/aiops.db
+      - AIOPS_INTERNAL_TOKEN=${AIOPS_INTERNAL_TOKEN}
+      - DEMO_ADMIN_TOKEN=${DEMO_ADMIN_TOKEN}
+      - APPROVAL_SIGNING_SECRET=${APPROVAL_SIGNING_SECRET}
+      - APPROVAL_TTL_SECONDS=${APPROVAL_TTL_SECONDS}
+      - DEMO_APPROVER_NAME=${DEMO_APPROVER_NAME}
+      - HERMES_API_URL=${HERMES_API_URL}
+      - HERMES_API_SERVER_KEY=${HERMES_API_SERVER_KEY}
+      - HERMES_MODEL_NAME=${HERMES_MODEL_NAME}
+      - OPS_MCP_URL=${OPS_MCP_URL}
+      - DEMO_GATEWAY_URL=${DEMO_GATEWAY_URL}
+      - DEMO_BACKEND_URL=${DEMO_BACKEND_URL}
+      - NORMAL_BACKEND_URL=${NORMAL_BACKEND_URL}
+      - FAULT_BACKEND_URL=${FAULT_BACKEND_URL}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  ops-mcp:
+    build: ./ops-mcp
+    container_name: ops-mcp
+    networks: [aiops-net]
+    depends_on:
+      aiops-api:
+        condition: service_healthy
+      demo-gateway:
+        condition: service_healthy
+    environment:
+      - DEMO_GATEWAY_URL=${DEMO_GATEWAY_URL}
+      - DEMO_BACKEND_URL=${DEMO_BACKEND_URL}
+      - NORMAL_BACKEND_URL=${NORMAL_BACKEND_URL}
+      - FAULT_BACKEND_URL=${FAULT_BACKEND_URL}
+      - DEMO_ADMIN_TOKEN=${DEMO_ADMIN_TOKEN}
+      - AIOPS_INTERNAL_TOKEN=${AIOPS_INTERNAL_TOKEN}
+      - AIOPS_API_URL=http://aiops-api:8000
+      - APPROVAL_SIGNING_SECRET=${APPROVAL_SIGNING_SECRET}
+      - APPROVAL_TTL_SECONDS=${APPROVAL_TTL_SECONDS}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8765/healthz')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  hermes:
+    image: nousresearch/hermes-agent:latest
+    container_name: hermes
+    networks: [aiops-net]
+    depends_on:
+      ops-mcp:
+        condition: service_healthy
+    volumes:
+      - hermes-data:/app/data
+      - ./hermes/skills:/app/skills:ro
+    environment:
+      - HERMES_MODEL_NAME=${HERMES_MODEL_NAME}
+      - HERMES_MODEL_BASE_URL=${HERMES_MODEL_BASE_URL}
+      - HERMES_MODEL_API_KEY=${HERMES_MODEL_API_KEY}
+      - HERMES_API_SERVER_KEY=${HERMES_API_SERVER_KEY}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8642/v1/models')"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    profiles: ["hermes"]
+
+  aiops-ui:
+    build: ./ui
+    container_name: aiops-ui
+    networks: [aiops-net]
+    depends_on:
+      aiops-api:
+        condition: service_healthy
+    ports:
+      - "${PUBLIC_PORT:-8080}:80"
+    restart: unless-stopped
+
+networks:
+  aiops-net:
+    driver: bridge
+
+volumes:
+  aiops-data:
+  hermes-data:

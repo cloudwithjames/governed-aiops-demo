@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Huawei Cloud Governed AI Operations</title>
+    <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+    <header class="header">
+        <div class="header-left">
+            <h1 id="title">Huawei Cloud Governed AI Operations</h1>
+            <p id="subtitle" class="subtitle">Observe → Diagnose → Plan → Approve → Execute → Verify → Record</p>
+        </div>
+        <div class="header-right">
+            <div class="lang-toggle">
+                <button id="lang-en" class="lang-btn active" onclick="setLang('en')">EN</button>
+                <span>|</span>
+                <button id="lang-zh" class="lang-btn" onclick="setLang('zh')">中文</button>
+            </div>
+            <button id="reset-demo" class="btn btn-secondary" onclick="resetDemo()"></button>
+            <span id="mode-badge" class="mode-badge"></span>
+        </div>
+    </header>
+
+    <div class="principle-bar">
+        <div class="principle" id="principle-1"></div>
+        <div class="principle" id="principle-2"></div>
+        <div class="principle" id="principle-3"></div>
+    </div>
+
+    <main class="main">
+        <section class="service-status">
+            <div class="section-header">
+                <h2 id="service-status-title"></h2>
+                <a id="portal-link" href="/portal/" target="_blank" class="portal-link"></a>
+            </div>
+            <div class="status-cards">
+                <div class="status-card" id="card-portal">
+                    <span class="card-label" id="label-portal"></span>
+                    <span class="card-status" id="status-portal">—</span>
+                </div>
+                <div class="status-card" id="card-gateway">
+                    <span class="card-label" id="label-gateway"></span>
+                    <span class="card-status" id="status-gateway">—</span>
+                </div>
+                <div class="status-card" id="card-backend">
+                    <span class="card-label" id="label-backend"></span>
+                    <span class="card-status" id="status-backend">—</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="timeline-section">
+            <h2 id="timeline-title"></h2>
+            <div class="timeline" id="timeline">
+                <div class="timeline-step" data-step="1"><span class="step-num">1</span><span class="step-label" id="step-1"></span></div>
+                <span class="timeline-arrow">&rarr;</span>
+                <div class="timeline-step" data-step="2"><span class="step-num">2</span><span class="step-label" id="step-2"></span></div>
+                <span class="timeline-arrow">&rarr;</span>
+                <div class="timeline-step" data-step="3"><span class="step-num">3</span><span class="step-label" id="step-3"></span></div>
+                <span class="timeline-arrow">&rarr;</span>
+                <div class="timeline-step" data-step="4"><span class="step-num">4</span><span class="step-label" id="step-4"></span></div>
+                <span class="timeline-arrow">&rarr;</span>
+                <div class="timeline-step" data-step="5"><span class="step-num">5</span><span class="step-label" id="step-5"></span></div>
+                <span class="timeline-arrow">&rarr;</span>
+                <div class="timeline-step" data-step="6"><span class="step-num">6</span><span class="step-label" id="step-6"></span></div>
+                <span class="timeline-arrow">&rarr;</span>
+                <div class="timeline-step" data-step="7"><span class="step-num">7</span><span class="step-label" id="step-7"></span></div>
+            </div>
+        </section>
+
+        <div class="two-col">
+            <section class="evidence-section">
+                <h2 id="evidence-title"></h2>
+                <div id="evidence-board" class="evidence-board"></div>
+            </section>
+
+            <section class="agent-section">
+                <h2 id="agent-title"></h2>
+                <div class="agent-controls">
+                    <button id="btn-inject" class="btn btn-primary" onclick="injectIncident()"></button>
+                    <button id="btn-diagnose" class="btn btn-primary" onclick="startDiagnosis()" disabled></button>
+                </div>
+                <div id="agent-transcript" class="agent-transcript"></div>
+            </section>
+        </div>
+
+        <section class="root-cause-section" id="root-cause-section" style="display:none;">
+            <h2 id="rc-title"></h2>
+            <div class="rc-content">
+                <div class="rc-row"><span class="rc-label" id="rc-cause-label"></span><span id="rc-cause"></span></div>
+                <div class="rc-row"><span class="rc-label" id="rc-confidence-label"></span><span id="rc-confidence"></span></div>
+                <div class="rc-row"><span class="rc-label" id="rc-evidence-label"></span><span id="rc-evidence"></span></div>
+                <div class="rc-row"><span class="rc-label" id="rc-time-label"></span><span id="rc-time"></span></div>
+            </div>
+        </section>
+
+        <section class="plan-section" id="plan-section" style="display:none;">
+            <h2 id="plan-title"></h2>
+            <div class="plan-content">
+                <div class="plan-row"><span class="plan-label" id="plan-action-label"></span><span id="plan-action"></span></div>
+                <div class="plan-row"><span class="plan-label" id="plan-impact-label"></span><span id="plan-impact"></span></div>
+                <div class="plan-row"><span class="plan-label" id="plan-risk-label"></span><span id="plan-risk"></span></div>
+                <div class="plan-row"><span class="plan-label" id="plan-blast-label"></span><span id="plan-blast"></span></div>
+                <div class="plan-row"><span class="plan-label" id="plan-rollback-label"></span><span id="plan-rollback"></span></div>
+                <div class="plan-row"><span class="plan-label" id="plan-postchecks-label"></span><span id="plan-postchecks"></span></div>
+                <div class="plan-row"><span class="plan-label" id="plan-time-label"></span><span id="plan-time"></span></div>
+            </div>
+        </section>
+
+        <section class="approval-section" id="approval-section" style="display:none;">
+            <h2 id="approval-title"></h2>
+            <p id="approval-message" class="approval-message"></p>
+            <div class="approval-buttons">
+                <button id="btn-approve" class="btn btn-success" onclick="approveIncident()"></button>
+                <button id="btn-reject" class="btn btn-danger" onclick="rejectIncident()"></button>
+            </div>
+        </section>
+
+        <section class="exec-section" id="exec-section" style="display:none;">
+            <h2 id="exec-title"></h2>
+            <div id="exec-content" class="exec-content"></div>
+        </section>
+
+        <section class="report-section" id="report-section" style="display:none;">
+            <h2 id="report-title"></h2>
+            <div id="report-content" class="report-content"></div>
+            <button id="btn-download" class="btn btn-secondary" onclick="downloadReport()"></button>
+        </section>
+    </main>
+
+    <script src="/js/i18n.js?v=3"></script>
+    <script src="/js/api.js?v=3"></script>
+    <script src="/js/state.js?v=3"></script>
+    <script src="/js/app.js?v=3"></script>
+</body>
+</html>

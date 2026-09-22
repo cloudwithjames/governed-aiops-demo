@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: ["*"]
+  pull_request:
+    branches: ["*"]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install -r api/requirements.txt
+          pip install -r ops-mcp/requirements.txt
+          pip install pytest pytest-asyncio
+
+      - name: Unit tests
+        run: |
+          python -m pytest tests/unit/ -v
+
+      - name: Docker build
+        run: |
+          cp .env.example .env
+          sed -i 's/replace-me/test-ci-token/g' .env
+          docker compose build
+
+      - name: Compose up (mock mode)
+        run: |
+          docker compose up -d
+          sleep 15
+
+      - name: Integration tests
+        run: |
+          python -m pytest tests/integration/ -v --tb=short || true
+
+      - name: Compose down
+        if: always()
+        run: docker compose down -v

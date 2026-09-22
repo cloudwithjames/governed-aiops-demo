@@ -1,0 +1,12 @@
+.env
+*.db
+data/
+hermes-data/
+__pycache__/
+.pytest_cache/
+.DS_Store
+*.pyc
+*.pyo
+*.egg-info/
+.venv/
+venv/
