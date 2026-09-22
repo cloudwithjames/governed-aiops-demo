@@ -102,7 +102,7 @@ services:
     volumes:
       - hermes-data:/opt/data
       - ./hermes/config.yaml:/opt/data/config.yaml:ro
-      - ./hermes/skills:/app/skills:ro
+      - ./hermes/skills:/app/skills
     environment:
       - HERMES_UID=1000
       - HERMES_GID=1000
