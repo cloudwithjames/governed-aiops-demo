@@ -32,6 +32,8 @@ services:
     build: ./api
     container_name: aiops-api
     networks: [aiops-net]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       demo-gateway:
         condition: service_healthy

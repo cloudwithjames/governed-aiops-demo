@@ -5,9 +5,18 @@ from sse_starlette.sse import EventSourceResponse
 from ..config import AIOPS_AGENT_MODE, AIOPS_INTERNAL_TOKEN
 from ..services import incident_service, event_service, approval_service
 from ..services.mock_agent import run_mock_diagnosis, run_mock_execute
+from ..services.real_agent import run_real_diagnosis, run_real_execute
 from ..models import IncidentState
 
 router = APIRouter(prefix="/api/incidents", tags=["incidents"])
+
+
+def _get_diagnosis_fn():
+    return run_real_diagnosis if AIOPS_AGENT_MODE == "hermes" else run_mock_diagnosis
+
+
+def _get_execute_fn():
+    return run_real_execute if AIOPS_AGENT_MODE == "hermes" else run_mock_execute
 
 
 @router.post("")
@@ -34,7 +43,7 @@ async def run_diagnosis(incident_id: str):
     if not incident:
         raise HTTPException(status_code=404, detail="incident not found")
 
-    asyncio.create_task(run_mock_diagnosis(incident_id))
+    asyncio.create_task(_get_diagnosis_fn()(incident_id))
     return {"mode": AIOPS_AGENT_MODE, "status": "diagnosis started"}
 
 
@@ -90,7 +99,7 @@ async def approve(incident_id: str, approver: str = "Demo Operator"):
     await event_service.create_event(incident_id, "APPROVAL", "human", "api",
                                      "APPROVAL_GRANTED", {"approved_by": approver})
 
-    asyncio.create_task(run_mock_execute(incident_id))
+    asyncio.create_task(_get_execute_fn()(incident_id))
     return {"approval": approval, "status": "execution started"}
 
 
